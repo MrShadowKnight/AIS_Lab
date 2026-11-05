@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЕС «Вибір типу комп'ютерної мережі»</title>
+<style>
+  :root { --bg:#f4f6fa; --card:#fff; --line:#dde3ee; --text:#1d2433; --muted:#667085;
+          --accent:#2563eb; --accent2:#e8efff; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 "DejaVu Sans",system-ui,sans-serif; }
+  header { background:#0f1f3d; color:#fff; padding:14px 28px; display:flex; align-items:center; gap:18px; }
+  header h1 { font-size:18px; margin:0; } header p { margin:0; font-size:12.5px; color:#b9c4dc; }
+  nav { margin-left:auto; display:flex; gap:6px; }
+  nav button { background:transparent; color:#cbd5e1; border:1px solid #33456b; border-radius:8px; padding:7px 14px; cursor:pointer; font:inherit; font-size:14px; }
+  nav button.on { background:#fff; color:#0f1f3d; }
+  main { max-width:1100px; margin:24px auto; padding:0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin-bottom:16px; }
+  h2 { margin:0 0 10px; font-size:20px; } h3 { margin:0 0 8px; font-size:16px; }
+  .muted { color:var(--muted); } .small { font-size:13px; }
+  .btn { background:var(--accent); color:#fff; border:0; border-radius:9px; padding:10px 18px; font:inherit; cursor:pointer; }
+  .btn.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .progress { height:6px; background:var(--accent2); border-radius:4px; overflow:hidden; margin:6px 0 18px; }
+  .progress span { display:block; height:100%; background:var(--accent); }
+  .opts { display:grid; gap:10px; margin:16px 0; }
+  .opt { text-align:left; background:#fff; border:1.5px solid var(--line); border-radius:10px; padding:12px 16px; font:inherit; cursor:pointer; }
+  .opt:hover { border-color:var(--accent); background:var(--accent2); }
+  .opt.unknown { color:var(--muted); border-style:dashed; }
+  .why { background:#fff8e6; border-left:4px solid var(--warn); padding:10px 14px; border-radius:6px; margin-top:8px; font-size:14px; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .summary { background:#0f1f3d; color:#fff; border:0; }
+  .summary .muted { color:#b9c4dc; }
+  .alt { display:grid; grid-template-columns:1fr 140px 52px; gap:10px; align-items:center; font-size:13.5px; margin:6px 0; }
+  .bar { height:9px; background:#eef1f6; border-radius:5px; position:relative; overflow:hidden; }
+  .bar span { position:absolute; top:0; bottom:0; }
+  .badge { display:inline-block; font-size:12px; padding:2px 9px; border-radius:10px; color:#fff; }
+  .висока { background:var(--ok); } .середня { background:#2563eb; } .низька { background:var(--warn); } .немає { background:#98a2b3; }
+  details { margin-top:10px; } summary { cursor:pointer; color:var(--accent); font-size:14px; }
+  .tree { font-size:13px; margin:6px 0 0 4px; }
+  .tree .r { border-left:2px solid var(--line); padding:4px 0 4px 10px; margin:4px 0; }
+  .tree .rid { font-weight:700; color:var(--accent); }
+  .tree .sub { margin-left:16px; }
+  .pos { color:var(--ok); } .neg { color:var(--bad); }
+  ul { margin:6px 0; padding-left:20px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { border:1px solid var(--line); padding:6px 8px; vertical-align:top; text-align:left; }
+  th { background:#f0f3f8; }
+  .note { background:#eef6ff; border:1px solid #c7dbff; border-radius:10px; padding:12px 16px; font-size:14px; }
+  .answers td:first-child { width:60%; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Експертна система «Вибір типу комп'ютерної мережі»</h1>
+  <p>модель консультації мережевого інженера з замовником</p></div>
+  <nav><button id="nav-consult" class="on">Консультація</button><button id="nav-kb">База знань</button></nav>
+</header>
+<main id="app"></main>
+<script>
+let KB = null, answers = {}, step = -1;
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = v => Math.round(v * 100) + '%';
+
+async function load() { KB = await (await fetch('/api/kb')).json(); intro(); }
+
+function intro() {
+  step = -1; answers = {};
+  app.innerHTML = `<div class="card"><h2>Вітаю! Я допоможу попередньо визначити, яку комп'ютерну мережу вам варто будувати.</h2>
+    <p>Я поставлю ${KB.questions.length} простих питань про вашу організацію - так само, як це зробив би мережевий інженер на першій зустрічі.
+    Технічних знань не потрібно, а якщо не знаєте відповіді - так і скажіть.</p>
+    <p>Наприкінці ви отримаєте попередню рекомендацію з рівнем впевненості, пояснення, на чому вона ґрунтується, і перелік того, що варто уточнити.</p>
+    <div class="note">Система моделює хід міркувань експерта, але не замінює його: остаточний проєкт мережі складає інженер після обстеження об'єкта.</div>
+    <p><button class="btn" id="start">Почати консультацію</button></p></div>`;
+  document.getElementById('start').onclick = () => { step = 0; ask(); };
+}
+
+function ask() {
+  const q = KB.questions[step];
+  app.innerHTML = `<div class="card">
+    <div class="muted small">Питання ${step + 1} з ${KB.questions.length}</div>
+    <div class="progress"><span style="width:${step / KB.questions.length * 100}%"></span></div>
+    <h2>${esc(q.text)}</h2>
+    <div class="opts">${q.options.map(([id, t]) => `<button class="opt" data-v="${id}">${esc(t)}</button>`).join('')}
+      <button class="opt unknown" data-v="unknown">не знаю</button></div>
+    <div class="row"><button class="btn ghost" id="back" ${step ? '' : 'disabled'}>← Назад</button>
+      <button class="btn ghost" id="why">Чому ви про це питаєте?</button></div>
+    <div id="whybox"></div></div>`;
+  app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    answers[q.id] = b.dataset.v; step++;
+    step < KB.questions.length ? ask() : consult();
+  });
+  document.getElementById('back').onclick = () => { step--; ask(); };
+  document.getElementById('why').onclick = () =>
+    document.getElementById('whybox').innerHTML = `<div class="why">${esc(q.why)}</div>`;
+}
+
+function barHtml(v) {
+  const w = Math.abs(v) * 50;
+  const style = v >= 0 ? `left:50%;width:${w}%;background:var(--accent)` : `right:50%;width:${w}%;background:var(--bad)`;
+  return `<div class="bar"><span style="${style}"></span><span style="left:50%;width:1px;background:#98a2b3"></span></div>`;
+}
+
+function treeHtml(nodes) {
+  return nodes.map(n => `<div class="r"><span class="rid">${n.rule}</span>
+      <span class="${n.delta > 0 ? 'pos' : 'neg'}">${n.delta > 0 ? '+' : ''}${n.delta.toFixed(2)}</span> - ${esc(n.why)}
+      <div class="muted">${n.premises.map(p => 'якщо ' + esc(p)).join('<br>')}</div>
+      ${n.children.map(c => `<div class="sub"><i>${esc(c.attr)}:</i>${treeHtml(c.rules)}</div>`).join('')}</div>`).join('');
+}
+
+async function consult() {
+  const res = await (await fetch('/api/consult', {method:'POST', headers:{'Content-Type':'application/json'},
+                                                  body: JSON.stringify({facts: answers})})).json();
+  const aspects = Object.values(res.aspects).map(a => `<div class="card">
+      <div class="row" style="justify-content:space-between"><h3>${esc(a.title)}</h3>
+        <span class="badge ${a.level}">впевненість: ${a.level}${a.decision ? ' · ' + pct(a.cf) : ''}</span></div>
+      <p><b>${a.decision ? esc(a.decision) : 'Висновок зробити не можу - бракує даних.'}</b></p>
+      ${a.alternatives.map(x => `<div class="alt"><span>${esc(x.label)}</span>${barHtml(x.cf)}<span>${x.cf > 0 ? '+' : ''}${x.cf.toFixed(2)}</span></div>`).join('')}
+      ${a.explanation.length ? `<details><summary>Як я дійшов цього висновку?</summary><div class="tree">${treeHtml(a.explanation)}</div></details>` : ''}
+    </div>`).join('');
+  const inter = res.intermediate.filter(i => Math.abs(i.cf) >= 0.2).map(i =>
+      `<li>${i.cf > 0 ? '' : '<b>не</b> '}${esc(i.label)} <span class="muted">(${i.cf > 0 ? '+' : ''}${i.cf.toFixed(2)})</span></li>`).join('');
+  const unk = res.unknowns.length ? `<div class="card"><h3>Що варто уточнити</h3>
+      <p class="muted small">Через відповідь «не знаю» я не зміг врахувати деякі міркування:</p><ul>${
+      res.unknowns.map(u => `<li>${esc(u.question)}<br><span class="muted small">впливає на: ${u.affects.map(esc).join('; ')}</span></li>`).join('')}</ul></div>` : '';
+  app.innerHTML = `<div class="card summary"><h2>Висновок експертної системи</h2><p>${esc(res.summary)}</p>
+      ${res.weak.length ? `<p class="muted">Найменш упевнені висновки: ${res.weak.map(esc).join(', ')} - їх варто обговорити з інженером.</p>` : ''}
+      <p class="muted small">Це попередня рекомендація. Остаточне рішення приймає інженер після обстеження об'єкта.</p></div>
+    <div class="grid">${aspects}</div>
+    <div class="grid">
+      <div class="card"><h3>Додаткові поради експерта</h3>${res.advice.length ? '<ul>' + res.advice.map(([t, c]) => `<li>${esc(t)} <span class="muted">(${c.toFixed(2)})</span></li>`).join('') + '</ul>' : '<p class="muted">Немає.</p>'}</div>
+      <div class="card"><h3>Проміжні висновки</h3><ul>${inter || '<li class="muted">немає</li>'}</ul></div>
+    </div>${unk}
+    <div class="card"><h3>Ваші відповіді</h3><table class="answers">${res.answers.map(a => `<tr><td>${esc(a.question)}</td><td>${esc(a.answer)}</td></tr>`).join('')}</table>
+      <p><button class="btn" id="again">Нова консультація</button> <button class="btn ghost" id="edit">Змінити останню відповідь</button></p></div>`;
+  document.getElementById('again').onclick = intro;
+  document.getElementById('edit').onclick = () => { step = KB.questions.length - 1; ask(); };
+}
+
+function showKb() {
+  const levels = {1: 'Відповіді → проміжні висновки', 2: 'Проміжні висновки → потреби та рішення', 3: 'Комбіновані рішення', 4: 'Комбіновані рішення'};
+  app.innerHTML = `<div class="card"><h2>База знань</h2>
+    <p class="muted">${KB.rules.length} продукційних правил з коефіцієнтами впевненості (CF від −1 до +1). Правило спрацьовує, коли впевненість у його умовах не менша за 0,2;
+    внесок правила = CF × впевненість умов. Внески до одного висновку об'єднуються за формулою MYCIN.</p>
+    <table><tr><th>№</th><th>ЯКЩО</th><th>ТО</th><th>CF</th><th>Чому так вважає експерт</th></tr>
+    ${KB.rules.map(r => `<tr><td>${r.id}</td><td>${r.if.map(esc).join('<br><b>і</b> ')}</td><td>${esc(r.then)}</td>
+      <td class="${r.cf > 0 ? 'pos' : 'neg'}">${r.cf > 0 ? '+' : ''}${r.cf}</td><td>${esc(r.why)}</td></tr>`).join('')}</table></div>`;
+}
+
+document.getElementById('nav-consult').onclick = e => { setNav(e.target); step >= 0 && step < KB.questions.length ? ask() : intro(); };
+document.getElementById('nav-kb').onclick = e => { setNav(e.target); showKb(); };
+function setNav(b) { document.querySelectorAll('nav button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }
+load();
+</script>
+</body>
+</html>

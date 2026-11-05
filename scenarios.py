@@ -1,0 +1,21 @@
+"""Типові замовники для перевірки експертної системи."""
+SCENARIOS = {
+    'Мала дизайн-студія (6 осіб)': dict(size='lt10', place='room', mobile='partly', cable='yes',
+        data='no', shared='simple', admin='none', downtime='tolerable', traffic='heavy',
+        guests='no', budget='min', growth='no'),
+    'Бухгалтерська фірма (25 осіб)': dict(size='10_30', place='floors', mobile='no', cable='yes',
+        data='yes', shared='central', admin='outsourced', downtime='critical', traffic='normal',
+        guests='no', budget='medium', growth='yes'),
+    'Школа з двома корпусами': dict(size='30_100', place='buildings', mobile='partly',
+        cable='limited', data='yes', shared='central', admin='staff', downtime='tolerable',
+        traffic='normal', guests='yes', budget='min', growth='yes'),
+    'Мережа кав\'ярень у 3 містах': dict(size='10_30', place='cities', mobile='yes', cable='limited',
+        data='no', shared='simple', admin='outsourced', downtime='critical', traffic='normal',
+        guests='yes', budget='medium', growth='yes'),
+    'Офіс в історичній будівлі': dict(size='10_30', place='room', mobile='yes', cable='no',
+        data='no', shared='simple', admin='none', downtime='tolerable', traffic='normal',
+        guests='yes', budget='min', growth='no'),
+    'Замовник майже нічого не знає': dict(size='10_30', place='unknown', mobile='unknown',
+        cable='unknown', data='unknown', shared='unknown', admin='unknown', downtime='unknown',
+        traffic='unknown', guests='no', budget='unknown', growth='unknown'),
+}
