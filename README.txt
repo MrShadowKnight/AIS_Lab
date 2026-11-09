@@ -1,4 +1,4 @@
-ЛР-7. Розпізнавання з OpenCV (Пінчак В.Б., КН-2327Б)
+ЛР-5. Розпізнавання з OpenCV (Пінчак В.Б., КН-2327Б)
 
 Встановлення:   pip install opencv-python numpy
 (для experiments.py ще matplotlib, для make_video.py - pillow і ffmpeg)
